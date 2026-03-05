@@ -2,7 +2,17 @@
 @import "@nuxt/ui";
 
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  --font-sans: 'Inter', 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Increase all font sizes by ~1-2px for readability */
+  --text-xs: 0.8125rem;     /* 13px (was 12px) */
+  --text-sm: 0.9375rem;     /* 15px (was 14px) */
+  --text-base: 1.0625rem;   /* 17px (was 16px) */
+  --text-lg: 1.1875rem;     /* 19px (was 18px) */
+  --text-xl: 1.3125rem;     /* 21px (was 20px) */
+  --text-2xl: 1.5625rem;    /* 25px (was 24px) */
+  --text-3xl: 1.9375rem;    /* 31px (was 30px) */
+  --text-4xl: 2.3125rem;    /* 37px (was 36px) */
 
   --color-green-50: #EFFDF5;
   --color-green-100: #D9FBE8;
@@ -15,4 +25,60 @@
   --color-green-800: #016538;
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
+}
+
+/* Base styles */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+/* TipTap prose content */
+.prose {
+  line-height: 1.8;
+  font-size: var(--text-base);
+}
+
+.prose h1 { font-size: var(--text-3xl); font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
+.prose h2 { font-size: var(--text-2xl); font-weight: 700; margin-top: 1.75rem; margin-bottom: 0.75rem; }
+.prose h3 { font-size: var(--text-xl); font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.prose p { margin-bottom: 1.25rem; }
+.prose a { color: var(--ui-primary); text-decoration: underline; text-underline-offset: 3px; }
+.prose ul, .prose ol { padding-left: 1.5rem; margin-bottom: 1.25rem; }
+.prose li { margin-bottom: 0.4rem; }
+.prose blockquote {
+  border-left: 3px solid var(--ui-primary);
+  padding-left: 1rem;
+  color: var(--ui-text-muted);
+  font-style: italic;
+  margin: 1.5rem 0;
+}
+.prose code {
+  background: var(--ui-bg-elevated);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+.prose pre {
+  background: var(--ui-bg-elevated);
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: var(--text-sm);
+}
+.prose img {
+  border-radius: 0.75rem;
+  max-width: 100%;
+  margin: 1.5rem auto;
+}
+.prose hr {
+  border-color: var(--ui-border);
+  margin: 2rem 0;
 }

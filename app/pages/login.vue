@@ -6,9 +6,16 @@ useSeoMeta({ title: 'Sign In — Knowledge Orbit' })
 
 const auth = useAuthStore()
 const user = useSupabaseUser()
-const router = useRouter()
 
-if (user.value) router.push('/')
+// Redirect if already logged in — onMounted so it only runs client-side
+onMounted(() => {
+  if (user.value) navigateTo('/')
+})
+
+// Also watch in case auth resolves after mount
+watch(user, (u) => {
+  if (u) navigateTo('/')
+})
 
 const email = ref('')
 const password = ref('')
@@ -25,7 +32,7 @@ async function handleEmail() {
       error.value = 'Check your email to confirm your account.'
     } else {
       await auth.signInWithEmail(email.value, password.value)
-      router.push('/')
+      await navigateTo('/')
     }
   } catch (e: unknown) {
     error.value = (e as Error).message || 'Something went wrong.'
@@ -36,46 +43,112 @@ async function handleEmail() {
 </script>
 
 <template>
-  <UContainer class="py-16 max-w-sm">
-    <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold">{{ mode === 'signin' ? 'Welcome back' : 'Create account' }}</h1>
-      <p class="text-muted mt-1 text-sm">Knowledge Orbit</p>
+  <div class="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-sm">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <NuxtLink to="/" class="text-2xl font-bold text-primary">Knowledge Orbit</NuxtLink>
+        <h1 class="text-xl font-semibold mt-3">
+          {{ mode === 'signin' ? 'Welcome back' : 'Create your account' }}
+        </h1>
+        <p class="text-muted text-sm mt-1">
+          {{ mode === 'signin' ? 'Sign in to your account' : 'Join the community' }}
+        </p>
+      </div>
+
+      <!-- OAuth buttons -->
+      <div class="space-y-3 mb-6">
+        <UButton
+          block
+          size="md"
+          icon="i-simple-icons-google"
+          label="Continue with Google"
+          color="neutral"
+          variant="outline"
+          class="w-full justify-center"
+          @click="auth.signInWithGoogle()"
+        />
+        <UButton
+          block
+          size="md"
+          icon="i-simple-icons-github"
+          label="Continue with GitHub"
+          color="neutral"
+          variant="outline"
+          class="w-full justify-center"
+          @click="auth.signInWithGitHub()"
+        />
+        <UButton
+          block
+          size="md"
+          icon="i-simple-icons-linkedin"
+          label="Continue with LinkedIn"
+          color="neutral"
+          variant="outline"
+          class="w-full justify-center"
+          @click="auth.signInWithLinkedIn()"
+        />
+      </div>
+
+      <USeparator label="or continue with email" class="my-6" />
+
+      <!-- Email form -->
+      <form class="space-y-4" @submit.prevent="handleEmail">
+        <div class="space-y-1">
+          <label class="text-sm font-medium">Email</label>
+          <UInput
+            v-model="email"
+            type="email"
+            placeholder="you@example.com"
+            required
+            size="md"
+            class="w-full"
+          />
+        </div>
+        <div class="space-y-1">
+          <label class="text-sm font-medium">Password</label>
+          <UInput
+            v-model="password"
+            type="password"
+            placeholder="••••••••"
+            required
+            size="md"
+            class="w-full"
+          />
+        </div>
+
+        <UAlert
+          v-if="error"
+          :title="error"
+          :color="error.includes('email') ? 'info' : 'error'"
+          variant="soft"
+          class="text-sm"
+        />
+
+        <UButton
+          type="submit"
+          block
+          size="md"
+          :loading="loading"
+          :label="mode === 'signin' ? 'Sign In' : 'Create Account'"
+          class="w-full"
+        />
+      </form>
+
+      <p class="text-center text-sm text-muted mt-6">
+        <template v-if="mode === 'signin'">
+          No account?
+          <button class="text-primary underline underline-offset-2 font-medium" @click="mode = 'signup'">
+            Sign up free
+          </button>
+        </template>
+        <template v-else>
+          Already have an account?
+          <button class="text-primary underline underline-offset-2 font-medium" @click="mode = 'signin'">
+            Sign in
+          </button>
+        </template>
+      </p>
     </div>
-
-    <div class="space-y-3 mb-6">
-      <UButton block icon="i-simple-icons-google" label="Continue with Google"
-        color="neutral" variant="outline" @click="auth.signInWithGoogle()" />
-      <UButton block icon="i-simple-icons-github" label="Continue with GitHub"
-        color="neutral" variant="outline" @click="auth.signInWithGitHub()" />
-      <UButton block icon="i-simple-icons-linkedin" label="Continue with LinkedIn"
-        color="neutral" variant="outline" @click="auth.signInWithLinkedIn()" />
-    </div>
-
-    <USeparator label="or" class="my-6" />
-
-    <UForm class="space-y-4" @submit.prevent="handleEmail">
-      <UFormField label="Email">
-        <UInput v-model="email" type="email" placeholder="you@example.com" required block />
-      </UFormField>
-      <UFormField label="Password">
-        <UInput v-model="password" type="password" placeholder="••••••••" required block />
-      </UFormField>
-
-      <UAlert v-if="error" :title="error" color="error" variant="soft" />
-
-      <UButton type="submit" block :loading="loading"
-        :label="mode === 'signin' ? 'Sign In' : 'Create Account'" />
-    </UForm>
-
-    <p class="text-center text-sm text-muted mt-6">
-      <template v-if="mode === 'signin'">
-        No account?
-        <button class="text-primary underline" @click="mode = 'signup'">Sign up</button>
-      </template>
-      <template v-else>
-        Have an account?
-        <button class="text-primary underline" @click="mode = 'signin'">Sign in</button>
-      </template>
-    </p>
-  </UContainer>
+  </div>
 </template>

@@ -1,27 +1,25 @@
 import { defineStore } from 'pinia'
 import type { Profile } from '~/types'
 
+// SSR-safe: all useSupabaseClient/useSupabaseUser calls are INSIDE functions,
+// never at the store setup root (that causes Pinia SSR crash)
 export const useAuthStore = defineStore('auth', () => {
-  const client = useSupabaseClient()
-  const user = useSupabaseUser()
-
   const profile = ref<Profile | null>(null)
   const loading = ref(false)
-
-  const isAuthed = computed(() => !!user.value)
   const isAdmin = computed(() => profile.value?.role === 'admin')
 
-  async function fetchProfile() {
-    if (!user.value) return
+  async function fetchProfile(userId: string) {
+    const client = useSupabaseClient()
     const { data } = await client
       .from('profiles')
       .select('*')
-      .eq('id', user.value.id)
+      .eq('id', userId)
       .single()
     profile.value = data
   }
 
   async function signInWithGoogle() {
+    const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/confirm` }
@@ -30,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signInWithGitHub() {
+    const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'github',
       options: { redirectTo: `${window.location.origin}/confirm` }
@@ -38,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signInWithLinkedIn() {
+    const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
       options: { redirectTo: `${window.location.origin}/confirm` }
@@ -46,31 +46,26 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signInWithEmail(email: string, password: string) {
+    const client = useSupabaseClient()
     const { error } = await client.auth.signInWithPassword({ email, password })
     if (error) throw error
-    await fetchProfile()
   }
 
   async function signUp(email: string, password: string) {
+    const client = useSupabaseClient()
     const { error } = await client.auth.signUp({ email, password })
     if (error) throw error
   }
 
   async function signOut() {
+    const client = useSupabaseClient()
     await client.auth.signOut()
     profile.value = null
   }
 
-  // Watch for user changes
-  watch(user, (u) => {
-    if (u) fetchProfile()
-    else profile.value = null
-  }, { immediate: true })
-
   return {
     profile,
     loading,
-    isAuthed,
     isAdmin,
     fetchProfile,
     signInWithGoogle,

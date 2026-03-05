@@ -14,7 +14,6 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-07-15',
 
-  // Site config used by @nuxtjs/seo
   site: {
     url: process.env.NUXT_PUBLIC_SITE_URL || 'https://knowledgeorbit.sreeniverse.co.in',
     name: 'Knowledge Orbit',
@@ -22,8 +21,9 @@ export default defineNuxtConfig({
     defaultLocale: 'en'
   },
 
-  // @nuxtjs/supabase config
   supabase: {
+    url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_KEY,
     redirect: false,
     cookieOptions: {
       maxAge: 60 * 60 * 8,
@@ -39,12 +39,10 @@ export default defineNuxtConfig({
     }
   },
 
-  // SSR on, but prerender home page
   routeRules: {
     '/': { prerender: false }
   },
 
-  // Netlify SSR preset
   nitro: {
     preset: 'netlify'
   },
