@@ -1,0 +1,30 @@
+[build]
+  command = "npm run build"
+  publish = ".output/public"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NUXT_TELEMETRY_DISABLED = "1"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = false
+  conditions = {Role = ["admin"]}
+
+[context.develop]
+  command = "npm run build"
+  [context.develop.environment]
+    NUXT_PUBLIC_SITE_URL = "https://develop--knowledge-orbit-v2.netlify.app"
+
+[context.production]
+  [context.production.environment]
+    NUXT_PUBLIC_SITE_URL = "https://knowledgeorbit.sreeniverse.co.in"

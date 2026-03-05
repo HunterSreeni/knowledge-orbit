@@ -1,0 +1,32 @@
+{
+  "name": "knowledge-orbit-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.95",
+    "@iconify-json/simple-icons": "^1.2.72",
+    "@nuxt/ui": "^4.5.1",
+    "@nuxtjs/seo": "^3.4.0",
+    "@nuxtjs/supabase": "^2.0.4",
+    "@pinia/nuxt": "^0.11.3",
+    "chart.js": "^4.5.1",
+    "nuxt": "^4.3.1",
+    "tailwindcss": "^4.2.1",
+    "vue-chartjs": "^5.3.3"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.15.2",
+    "eslint": "^10.0.2",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.2.5"
+  },
+  "packageManager": "npm"
+}
