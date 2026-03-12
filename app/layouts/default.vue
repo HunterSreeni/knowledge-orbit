@@ -4,10 +4,14 @@ import { useAuthStore } from '~/stores/auth'
 const auth = useAuthStore()
 const user = useSupabaseUser()
 
-// Watch user state and keep profile in sync — runs client-side only
+// Keep profile in sync with auth state.
+// Skip re-fetch if we already have the profile for this exact user (avoids a round-trip on every client navigation).
 watch(user, async (u) => {
-  if (u) await auth.fetchProfile(u.id)
-  else auth.profile = null
+  if (u?.id) {
+    if (auth.profile?.id !== u.id) await auth.fetchProfile(u.id)
+  } else {
+    auth.profile = null
+  }
 }, { immediate: true })
 
 const isAuthed = computed(() => !!user.value)
@@ -59,6 +63,15 @@ const isAuthed = computed(() => !!user.value)
         </template>
 
         <template v-else>
+          <UButton
+            to="/become-a-writer"
+            label="Write for us"
+            icon="i-lucide-pen-line"
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            class="hidden sm:flex"
+          />
           <UButton to="/login" label="Sign In" size="sm" />
         </template>
       </template>

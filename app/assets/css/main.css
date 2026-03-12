@@ -4,30 +4,43 @@
 @theme static {
   --font-sans: 'Inter', 'Public Sans', ui-sans-serif, system-ui, sans-serif;
 
-  /* Increase all font sizes by ~1-2px for readability */
-  --text-xs: 0.8125rem;     /* 13px (was 12px) */
-  --text-sm: 0.9375rem;     /* 15px (was 14px) */
-  --text-base: 1.0625rem;   /* 17px (was 16px) */
-  --text-lg: 1.1875rem;     /* 19px (was 18px) */
-  --text-xl: 1.3125rem;     /* 21px (was 20px) */
-  --text-2xl: 1.5625rem;    /* 25px (was 24px) */
-  --text-3xl: 1.9375rem;    /* 31px (was 30px) */
-  --text-4xl: 2.3125rem;    /* 37px (was 36px) */
+  /* Slightly larger base sizes for readability */
+  --text-xs: 0.8125rem;     /* 13px */
+  --text-sm: 0.9375rem;     /* 15px */
+  --text-base: 1.0625rem;   /* 17px */
+  --text-lg: 1.1875rem;     /* 19px */
+  --text-xl: 1.3125rem;     /* 21px */
+  --text-2xl: 1.5625rem;    /* 25px */
+  --text-3xl: 1.9375rem;    /* 31px */
+  --text-4xl: 2.3125rem;    /* 37px */
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+  /* Space-sky primary — matches Alpine's cyan feel */
+  --color-sky-50:  #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
+  --color-sky-800: #075985;
+  --color-sky-900: #0c4a6e;
+  --color-sky-950: #082f49;
 }
 
-/* Base styles */
+/* ─── Base ─────────────────────────────────────────────── */
+
+/* Tailwind resets button/a cursor to auto — restore pointer */
+button,
+[role="button"],
+a,
+label[for],
+select,
+[type="checkbox"],
+[type="radio"] {
+  cursor: pointer;
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,7 +48,30 @@ html {
   scroll-behavior: smooth;
 }
 
-/* TipTap prose content */
+/* Deep space dark background — richer than plain black */
+.dark body {
+  background-color: #080b14;
+}
+
+/* Subtle top glow in dark mode — feels like a distant nebula */
+.dark body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  height: 40vh;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(14, 165, 233, 0.07) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Prose (TipTap content) ────────────────────────────── */
 .prose {
   line-height: 1.8;
   font-size: var(--text-base);

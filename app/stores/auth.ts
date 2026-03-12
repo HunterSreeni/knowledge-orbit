@@ -18,11 +18,13 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = data
   }
 
+  const getOrigin = () => import.meta.client ? window.location.origin : useRequestURL().origin
+
   async function signInWithGoogle() {
     const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/confirm` }
+      options: { redirectTo: `${getOrigin()}/confirm` }
     })
     if (error) throw error
   }
@@ -31,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
     const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'github',
-      options: { redirectTo: `${window.location.origin}/confirm` }
+      options: { redirectTo: `${getOrigin()}/confirm` }
     })
     if (error) throw error
   }
@@ -40,7 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
     const client = useSupabaseClient()
     const { error } = await client.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
-      options: { redirectTo: `${window.location.origin}/confirm` }
+      options: { redirectTo: `${getOrigin()}/confirm` }
     })
     if (error) throw error
   }
@@ -57,10 +59,30 @@ export const useAuthStore = defineStore('auth', () => {
     if (error) throw error
   }
 
+  async function resendConfirmation(email: string) {
+    const client = useSupabaseClient()
+    const { error } = await client.auth.resend({ type: 'signup', email })
+    if (error) throw error
+  }
+
+  async function requestPasswordReset(email: string) {
+    const client = useSupabaseClient()
+    const redirectTo = `${getOrigin()}/reset-password`
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo })
+    if (error) throw error
+  }
+
+  async function updatePassword(newPassword: string) {
+    const client = useSupabaseClient()
+    const { error } = await client.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  }
+
   async function signOut() {
     const client = useSupabaseClient()
     await client.auth.signOut()
     profile.value = null
+    await navigateTo('/login')
   }
 
   return {
@@ -73,6 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
     signInWithLinkedIn,
     signInWithEmail,
     signUp,
+    resendConfirmation,
+    requestPasswordReset,
+    updatePassword,
     signOut
   }
 })

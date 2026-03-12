@@ -1,12 +1,12 @@
 export default defineNuxtRouteMiddleware(async () => {
-  const user = useSupabaseUser()
-  if (!user.value) return navigateTo('/login')
-
   const client = useSupabaseClient()
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) return navigateTo('/login')
+
   const { data } = await client
     .from('profiles')
     .select('role')
-    .eq('id', user.value.id)
+    .eq('id', user.id)
     .single()
 
   if (data?.role !== 'admin') return navigateTo('/')

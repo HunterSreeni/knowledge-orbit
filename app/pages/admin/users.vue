@@ -11,9 +11,13 @@ onMounted(async () => {
 })
 
 async function toggleRole(user: (typeof users.value)[0]) {
-  const newRole = user.role === 'admin' ? 'member' : 'admin'
-  await client.from('profiles').update({ role: newRole }).eq('id', user.id)
-  user.role = newRole
+  const newRole = user.role === 'admin' ? 'reader' : 'admin'
+  try {
+    await client.from('profiles').update({ role: newRole }).eq('id', user.id)
+    user.role = newRole
+  } catch (e) {
+    console.error('Failed to update role:', e)
+  }
 }
 </script>
 

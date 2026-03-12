@@ -12,13 +12,11 @@ const POST_SELECT = `
 `
 
 export const usePostsStore = defineStore('posts', () => {
-  const client = useSupabaseClient()
-
   const posts = ref<Post[]>([])
   const current = ref<Post | null>(null)
   const loading = ref(false)
   const hasMore = ref(true)
-  let page = 0
+  const page = ref(0) // ref so Pinia serializes it on SSR → hydration (keeps "Load more" correct)
 
   function normalise(raw: Post): Post {
     return {
@@ -29,73 +27,84 @@ export const usePostsStore = defineStore('posts', () => {
   }
 
   async function fetchFeed(reset = false) {
-    if (reset) { posts.value = []; page = 0; hasMore.value = true }
+    if (reset) { posts.value = []; page.value = 0; hasMore.value = true }
     if (!hasMore.value) return
     loading.value = true
+    const client = useSupabaseClient()
     const { data } = await client
       .from('posts')
       .select(POST_SELECT)
       .eq('status', 'published')
       .order('published_at', { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      .range(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE - 1)
     loading.value = false
     if (!data?.length) { hasMore.value = false; return }
     posts.value.push(...data.map(normalise))
     if (data.length < PAGE_SIZE) hasMore.value = false
-    page++
+    page.value++
   }
 
-  async function fetchBySlug(slug: string) {
+  async function fetchBySlug(slug: string, allowDraft = false) {
     loading.value = true
-    const { data } = await client
+    const client = useSupabaseClient()
+    let query = client
       .from('posts')
       .select(POST_SELECT + ', series:series(id, title, slug), content')
       .eq('slug', slug)
-      .eq('status', 'published')
-      .single()
+    if (!allowDraft) query = query.eq('status', 'published')
+    const { data } = await query.single()
     loading.value = false
     current.value = data ? normalise(data) : null
     return current.value
   }
 
   async function fetchMyPosts() {
-    const user = useSupabaseUser()
-    if (!user.value) return []
+    const client = useSupabaseClient()
+    const { data: { user } } = await client.auth.getUser()
+    if (!user?.id) return []
     loading.value = true
     const { data } = await client
       .from('posts')
       .select(POST_SELECT + ', content')
-      .eq('author_id', user.value.id)
+      .eq('author_id', user.id)
       .order('created_at', { ascending: false })
     loading.value = false
     return (data ?? []).map(normalise)
   }
 
   async function fetchByTag(tagSlug: string, reset = false) {
-    if (reset) { posts.value = []; page = 0; hasMore.value = true }
+    if (reset) { posts.value = []; page.value = 0; hasMore.value = true }
     if (!hasMore.value) return
     loading.value = true
+    const client = useSupabaseClient()
     const { data } = await client
       .from('posts')
       .select(POST_SELECT + ', post_tags!inner(tag:tags!inner(slug))')
       .eq('status', 'published')
       .eq('post_tags.tag.slug', tagSlug)
       .order('published_at', { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      .range(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE - 1)
     loading.value = false
     if (!data?.length) { hasMore.value = false; return }
     posts.value.push(...data.map(normalise))
     if (data.length < PAGE_SIZE) hasMore.value = false
-    page++
+    page.value++
   }
 
   async function fetchByAuthor(username: string) {
     loading.value = true
+    const client = useSupabaseClient()
+    const { data: profile } = await client
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .single()
+    if (!profile) { loading.value = false; return [] }
     const { data } = await client
       .from('posts')
       .select(POST_SELECT)
       .eq('status', 'published')
-      .eq('author.username', username)
+      .eq('author_id', profile.id)
       .order('published_at', { ascending: false })
     loading.value = false
     return (data ?? []).map(normalise)
@@ -103,6 +112,7 @@ export const usePostsStore = defineStore('posts', () => {
 
   async function searchPosts(query: string) {
     loading.value = true
+    const client = useSupabaseClient()
     const { data } = await client
       .from('posts')
       .select(POST_SELECT)
@@ -114,6 +124,7 @@ export const usePostsStore = defineStore('posts', () => {
   }
 
   async function createPost(draft: PostDraft, authorId: string) {
+    const client = useSupabaseClient()
     const { tag_ids, ...rest } = draft
     const { data, error } = await client
       .from('posts')
@@ -130,6 +141,7 @@ export const usePostsStore = defineStore('posts', () => {
   }
 
   async function updatePost(id: string, patch: Partial<PostDraft>) {
+    const client = useSupabaseClient()
     const { tag_ids, ...rest } = patch
     if (Object.keys(rest).length) {
       const { error } = await client.from('posts').update(rest).eq('id', id)
@@ -146,11 +158,13 @@ export const usePostsStore = defineStore('posts', () => {
   }
 
   async function deletePost(id: string) {
+    const client = useSupabaseClient()
     const { error } = await client.from('posts').delete().eq('id', id)
     if (error) throw error
   }
 
   async function publishPost(id: string) {
+    const client = useSupabaseClient()
     await client.from('posts').update({
       status: 'published',
       published_at: new Date().toISOString()
@@ -158,6 +172,7 @@ export const usePostsStore = defineStore('posts', () => {
   }
 
   async function unpublishPost(id: string) {
+    const client = useSupabaseClient()
     await client.from('posts').update({
       status: 'draft',
       published_at: null

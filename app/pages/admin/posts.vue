@@ -17,19 +17,27 @@ onMounted(async () => {
 })
 
 async function toggleStatus(post: (typeof posts.value)[0]) {
-  if (post.status === 'published') {
-    await store.unpublishPost(post.id)
-    post.status = 'draft'
-  } else {
-    await store.publishPost(post.id)
-    post.status = 'published'
+  try {
+    if (post.status === 'published') {
+      await store.unpublishPost(post.id)
+      post.status = 'draft'
+    } else {
+      await store.publishPost(post.id)
+      post.status = 'published'
+    }
+  } catch (e) {
+    console.error('Failed to update post status:', e)
   }
 }
 
 async function remove(id: string) {
   if (!confirm('Delete this post?')) return
-  await store.deletePost(id)
-  posts.value = posts.value.filter(p => p.id !== id)
+  try {
+    await store.deletePost(id)
+    posts.value = posts.value.filter(p => p.id !== id)
+  } catch (e) {
+    console.error('Failed to delete post:', e)
+  }
 }
 </script>
 
