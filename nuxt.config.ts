@@ -21,6 +21,20 @@ export default defineNuxtConfig({
     defaultLocale: 'en'
   },
 
+  ogImage: {
+    fonts: ['Inter:400', 'Inter:700']
+  },
+
+  sitemap: {
+    sources: ['/api/sitemap']
+  },
+
+  robots: {
+    disallow: ['/admin', '/dashboard', '/write', '/edit'],
+    allow: '/',
+    sitemap: 'https://knowledgeorbit.sreeniverse.co.in/sitemap.xml'
+  },
+
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,

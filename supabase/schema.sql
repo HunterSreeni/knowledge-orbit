@@ -154,6 +154,24 @@ CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views(created_at);
 CREATE INDEX IF NOT EXISTS idx_page_views_session ON page_views(session_id);
 
 
+-- ── Phase 5: Newsletter Subscribers ──────────────────────
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       text UNIQUE NOT NULL,
+  confirmed   boolean DEFAULT false,
+  created_at  timestamptz DEFAULT now()
+);
+
+
+-- ── Phase 5: Profile social columns ─────────────────────
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS twitter_url text,
+  ADD COLUMN IF NOT EXISTS linkedin_url text,
+  ADD COLUMN IF NOT EXISTS github_url text;
+
+
 -- ── Trigger: auto-create profile on signup ───────────────
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -190,6 +208,7 @@ ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ad_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE page_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "public read profiles" ON profiles FOR SELECT USING (true);
@@ -236,6 +255,16 @@ CREATE POLICY "admin read ad events" ON ad_events FOR SELECT
 CREATE POLICY "anon insert page views" ON page_views FOR INSERT WITH CHECK (true);
 CREATE POLICY "admin read page views" ON page_views FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Newsletter Subscribers
+CREATE POLICY "anon insert newsletter" ON newsletter_subscribers
+  FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon update newsletter" ON newsletter_subscribers
+  FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "admin read newsletter" ON newsletter_subscribers
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
 
 -- ── Analytics Views ──────────────────────────────────────

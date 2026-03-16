@@ -23,7 +23,30 @@ useSeoMeta({
 })
 
 const posts = ref<ReturnType<typeof store.fetchByAuthor> extends Promise<infer T> ? T : never>([])
-onMounted(async () => { posts.value = await store.fetchByAuthor(username) })
+const totalLikes = ref(0)
+
+onMounted(async () => {
+  posts.value = await store.fetchByAuthor(username)
+  // Count total likes across all posts
+  totalLikes.value = posts.value.reduce((sum: number, p: any) => sum + (p.likes?.[0]?.count ?? 0), 0)
+})
+
+function safeUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    return ['http:', 'https:'].includes(parsed.protocol) ? url : null
+  } catch { return null }
+}
+
+const socialLinks = computed(() => {
+  const p = profile.value as any
+  const links = []
+  if (p?.twitter_url && safeUrl(p.twitter_url)) links.push({ icon: 'i-simple-icons-x', href: safeUrl(p.twitter_url)!, label: 'Twitter' })
+  if (p?.linkedin_url && safeUrl(p.linkedin_url)) links.push({ icon: 'i-simple-icons-linkedin', href: safeUrl(p.linkedin_url)!, label: 'LinkedIn' })
+  if (p?.github_url && safeUrl(p.github_url)) links.push({ icon: 'i-simple-icons-github', href: safeUrl(p.github_url)!, label: 'GitHub' })
+  if (p?.website && safeUrl(p.website)) links.push({ icon: 'i-lucide-globe', href: safeUrl(p.website)!, label: 'Website' })
+  return links
+})
 </script>
 
 <template>
@@ -31,14 +54,37 @@ onMounted(async () => { posts.value = await store.fetchByAuthor(username) })
     <!-- Author header -->
     <div class="flex items-start gap-6 mb-10">
       <UAvatar :src="profile!.avatar_url || undefined" :alt="profile!.full_name || username" size="2xl" />
-      <div>
+      <div class="flex-1 min-w-0">
         <h1 class="text-2xl font-bold">{{ profile!.full_name || username }}</h1>
         <p class="text-muted text-sm">@{{ username }}</p>
-        <p v-if="profile!.bio" class="mt-2 text-sm">{{ profile!.bio }}</p>
-        <a v-if="profile!.website" :href="profile!.website" target="_blank" rel="noopener"
-          class="text-primary text-sm mt-1 block hover:underline">
-          {{ profile!.website }}
-        </a>
+        <p v-if="profile!.bio" class="mt-2 text-sm leading-relaxed">{{ profile!.bio }}</p>
+
+        <!-- Social links -->
+        <div v-if="socialLinks.length" class="flex items-center gap-2 mt-3">
+          <a
+            v-for="link in socialLinks"
+            :key="link.label"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            :title="link.label"
+            class="size-8 rounded-full border border-default flex items-center justify-center text-muted hover:text-sky-500 hover:border-sky-500/40 transition-colors"
+          >
+            <UIcon :name="link.icon" class="size-3.5" />
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="flex items-center gap-4 mt-4 text-sm text-muted">
+          <span class="flex items-center gap-1">
+            <UIcon name="i-lucide-file-text" class="size-3.5" />
+            {{ posts.length }} posts
+          </span>
+          <span class="flex items-center gap-1">
+            <UIcon name="i-lucide-heart" class="size-3.5" />
+            {{ totalLikes }} likes
+          </span>
+        </div>
       </div>
     </div>
 

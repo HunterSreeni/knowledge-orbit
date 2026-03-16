@@ -33,11 +33,11 @@ A Nuxt 4 + Supabase multi-author blog platform with:
 
 | # | Phase | Status |
 |---|---|---|
-| 1 | Nuxt 4 Foundation | See PLAN_PHASE1.md |
-| 2 | Ad System + Monetization | See PLAN_PHASE2.md |
-| 3 | Custom Analytics | See PLAN_PHASE3.md |
-| 4 | SEO | See PLAN_PHASE4.md |
-| 5 | Growth Features | See PLAN_PHASE5.md |
+| 1 | Nuxt 4 Foundation | DONE |
+| 2 | Ad System + Monetization | DONE |
+| 3 | Custom Analytics | DONE |
+| 4 | SEO | DONE |
+| 5 | Growth Features | DONE |
 
 ## Supabase Project
 

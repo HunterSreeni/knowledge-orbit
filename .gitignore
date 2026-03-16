@@ -24,3 +24,10 @@ logs
 !.env.example
 .netlify/functions-internal
 .output
+
+# Playwright CLI artifacts
+.playwright-cli/
+
+# Test artifacts
+test-results/
+confirm-test.png

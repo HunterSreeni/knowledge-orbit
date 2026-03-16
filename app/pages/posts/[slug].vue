@@ -8,6 +8,8 @@ import { usePostsStore } from '~/stores/posts'
 
 const route = useRoute()
 const store = usePostsStore()
+const client = useSupabaseClient()
+const config = useRuntimeConfig()
 
 const { data: post } = await useAsyncData(`post-${route.params.slug}`, () =>
   store.fetchBySlug(route.params.slug as string)
@@ -22,8 +24,87 @@ useSeoMeta({
   ogDescription: () => post.value?.excerpt || '',
   ogImage: () => post.value?.cover_image_url || undefined,
   ogType: 'article',
+  articlePublishedTime: () => post.value?.published_at || undefined,
+  articleAuthor: () => (post.value?.author as any)?.full_name || undefined,
   twitterCard: 'summary_large_image'
 })
+
+// Dynamic OG image when no cover image
+if (!post.value?.cover_image_url) {
+  defineOgImageComponent('KoPostOg', {
+    title: post.value?.title,
+    author: (post.value?.author as any)?.full_name,
+    tags: post.value?.tags?.map((t: any) => t.name)
+  })
+}
+
+// Structured data (Article JSON-LD)
+useSchemaOrg([
+  defineArticle({
+    headline: post.value?.title,
+    description: post.value?.excerpt || undefined,
+    image: post.value?.cover_image_url || undefined,
+    datePublished: post.value?.published_at || undefined,
+    dateModified: post.value?.updated_at || undefined,
+    author: {
+      '@type': 'Person',
+      name: (post.value?.author as any)?.full_name || 'Unknown'
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Knowledge Orbit',
+      url: 'https://knowledgeorbit.sreeniverse.co.in'
+    }
+  })
+])
+
+// ── Related posts (by shared tags) ────────────────────
+const { data: related } = await useAsyncData(`related-${route.params.slug}`, async () => {
+  const tagIds = post.value?.tags?.map((t: any) => t.id) || []
+  if (!tagIds.length) return []
+
+  const { data } = await client
+    .from('posts')
+    .select(`id, title, slug, excerpt, cover_image_url,
+             published_at, reading_time_mins,
+             author:profiles(username, full_name, avatar_url),
+             tags:post_tags(tag:tags(id, name, slug)),
+             likes:likes(count)`)
+    .eq('status', 'published')
+    .in('post_tags.tag_id', tagIds)
+    .neq('id', post.value?.id)
+    .order('published_at', { ascending: false })
+    .limit(3)
+
+  return (data || []).map((p: any) => ({
+    ...p,
+    tags: p.tags?.map((pt: any) => pt.tag) ?? []
+  }))
+})
+
+// ── Series prev/next navigation ───────────────────────
+const seriesNav = ref<{ prev: any; next: any } | null>(null)
+if ((post.value as any)?.series?.id) {
+  const { data: seriesPosts } = await useAsyncData(`series-nav-${(post.value as any).series.id}`, async () => {
+    const { data } = await client
+      .from('posts')
+      .select('id, title, slug')
+      .eq('series_id', (post.value as any).series.id)
+      .eq('status', 'published')
+      .order('published_at', { ascending: true })
+    return data || []
+  })
+
+  if (seriesPosts.value?.length) {
+    const idx = seriesPosts.value.findIndex((p: any) => p.id === post.value?.id)
+    seriesNav.value = {
+      prev: idx > 0 ? seriesPosts.value[idx - 1] : null,
+      next: idx < seriesPosts.value.length - 1 ? seriesPosts.value[idx + 1] : null
+    }
+  }
+}
+
+const postUrl = computed(() => `${config.public.siteUrl}/posts/${route.params.slug}`)
 
 // ── Render TipTap JSON → HTML ──────────────────────────
 function sanitizeHtml(html: string): string {
@@ -108,6 +189,9 @@ function formatDate(d: string | null) {
 </script>
 
 <template>
+  <!-- Reading progress bar -->
+  <LazyPostReadingProgress />
+
   <UContainer class="py-10 max-w-3xl" v-if="post">
 
     <!-- Cover image -->
@@ -134,7 +218,7 @@ function formatDate(d: string | null) {
     <!-- Title -->
     <h1 class="text-3xl sm:text-4xl font-bold leading-tight mb-5">{{ post.title }}</h1>
 
-    <!-- Author + meta -->
+    <!-- Author + meta + share -->
     <div class="flex flex-wrap items-center gap-3 text-sm text-muted mb-8 pb-8 border-b border-default">
       <NuxtLink :to="`/u/${post.author?.username}`" class="flex items-center gap-2 hover:text-sky-500 transition-colors">
         <UAvatar
@@ -153,16 +237,57 @@ function formatDate(d: string | null) {
         <UIcon name="i-lucide-eye" class="size-3.5" />
         {{ viewCount.toLocaleString() }} views
       </span>
+      <div class="ml-auto">
+        <PostShare :title="post.title" :url="postUrl" />
+      </div>
     </div>
 
     <!-- Post content (TipTap JSON → HTML) -->
-    <div v-if="contentHtml" class="prose dark:prose-invert max-w-none" v-html="contentHtml" />
-    <div v-else class="py-10 text-center text-muted text-sm">
-      This post has no content yet.
+    <div id="post-content">
+      <div v-if="contentHtml" class="prose dark:prose-invert max-w-none" v-html="contentHtml" />
+      <div v-else class="py-10 text-center text-muted text-sm">
+        This post has no content yet.
+      </div>
+    </div>
+
+    <!-- ── Series prev/next navigation ─────────────────── -->
+    <div v-if="seriesNav && (seriesNav.prev || seriesNav.next)" class="mt-10 grid grid-cols-2 gap-4">
+      <NuxtLink
+        v-if="seriesNav.prev"
+        :to="`/posts/${seriesNav.prev.slug}`"
+        class="p-4 rounded-xl border border-default hover:border-sky-500/40 transition-colors group"
+      >
+        <span class="text-xs text-muted">Previous in series</span>
+        <p class="text-sm font-medium mt-1 group-hover:text-sky-500 transition-colors line-clamp-2">
+          {{ seriesNav.prev.title }}
+        </p>
+      </NuxtLink>
+      <div v-else />
+      <NuxtLink
+        v-if="seriesNav.next"
+        :to="`/posts/${seriesNav.next.slug}`"
+        class="p-4 rounded-xl border border-default hover:border-sky-500/40 transition-colors group text-right"
+      >
+        <span class="text-xs text-muted">Next in series</span>
+        <p class="text-sm font-medium mt-1 group-hover:text-sky-500 transition-colors line-clamp-2">
+          {{ seriesNav.next.title }}
+        </p>
+      </NuxtLink>
+    </div>
+
+    <!-- ── Related posts ───────────────────────────────── -->
+    <div v-if="related?.length" class="mt-12">
+      <h2 class="text-lg font-semibold mb-4">Related posts</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <PostCard v-for="rp in related" :key="rp.id" :post="rp" />
+      </div>
     </div>
 
     <!-- ── End of post ad ──────────────────────────────── -->
     <LazyAdEndOfPost :post-slug="(route.params.slug as string)" />
+
+    <!-- ── Newsletter capture ──────────────────────────── -->
+    <LazyPostNewsletterCapture />
 
     <!-- ── Like + reaction bar ─────────────────────────── -->
     <div class="mt-12 pt-8 border-t border-default">
